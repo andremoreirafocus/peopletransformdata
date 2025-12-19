@@ -48,6 +48,8 @@ def flatten_json_string(json_str, sep="_"):
         items = {}
         if isinstance(obj, dict):
             for k, v in obj.items():
+                if "picture" in k or "info" in k or "postcode" in k:
+                    continue  # Skip keys containing 'picture'
                 new_key = f"{parent_key}{sep}{k}" if parent_key else k
                 items.update(_flatten(v, new_key, sep=sep))
         elif isinstance(obj, list):
@@ -164,43 +166,72 @@ def main():
     day = 19
     hour = 14
     start_time = time.time()
+    prefix = f"year={year}/month={month}/day={day}/hour={hour}/"
     objects_to_be_transformed = list_objects_in_minio_folder(
         bucket_name=source_bucket_name,
-        prefix=f"year={year}/month={month}/day={day}/hour={hour}/",
+        prefix=prefix,
         minio_endpoint=minio_endpoint,
         access_key=access_key,
         secret_key=secret_key,
         secure=False,
     )
     print(f"Files to be transformed: {objects_to_be_transformed}")
-    for object_name in objects_to_be_transformed:
-        source_object_name = object_name
 
-        print(f"Reading JSON from MinIO: {source_object_name}")
+    # Aggregate all records from all JSON files
+    all_flattened_records = []
+    for object_name in objects_to_be_transformed:
+        print(f"Reading JSON from MinIO: {object_name}")
         json_str = read_json_from_minio(
             bucket_name=source_bucket_name,
-            object_name=source_object_name,
+            object_name=object_name,
             minio_endpoint=minio_endpoint,
             access_key=access_key,
             secret_key=secret_key,
             secure=False,
         )
-        # destination_filename = "person_0329.parquet"
-        destination_object_name = f"year={year}/month={month}/day={day}/hour={hour}/{source_object_name.split('/')[-1].replace('.json', '.parquet')}"
-        print(
-            f"Converting {source_object_name} to Parquet and uploading to MinIO as: {destination_object_name}"
+        if json_str:
+            try:
+                data = json.loads(json_str)
+                if isinstance(data, dict):
+                    # If the dict has 'results', use the first result (legacy logic)
+                    if "results" in data and isinstance(data["results"], list):
+                        data = [data["results"][0]]
+                    else:
+                        data = [data]
+                for record in data:
+                    flat = flatten_json_string(json.dumps(record))
+                    if flat is not None:
+                        all_flattened_records.append(flat)
+            except Exception as e:
+                print(f"Error processing {object_name}: {e}")
+
+    if all_flattened_records:
+        df = pd.DataFrame(all_flattened_records)
+        print(df)
+        table = pa.Table.from_pandas(df)
+        out_buffer = BytesIO()
+        pq.write_table(table, out_buffer)
+        out_buffer.seek(0)
+        destination_object_name = f"year={year}/month={month}/day={day}/hour={hour}/={year}{month}{day}{hour}.parquet"
+        client = Minio(
+            minio_endpoint, access_key=access_key, secret_key=secret_key, secure=False
         )
-        json_string_to_parquet_minio(
-            json_str=json_str,
+        if not client.bucket_exists(destination_bucket_name):
+            client.make_bucket(destination_bucket_name)
+        client.put_object(
             bucket_name=destination_bucket_name,
             object_name=destination_object_name,
-            minio_endpoint=minio_endpoint,
-            access_key=access_key,
-            secret_key=secret_key,
-            secure=False,
+            data=out_buffer,
+            length=out_buffer.getbuffer().nbytes,
+            content_type="application/octet-stream",
         )
-        elapsed = time.time() - start_time
-        print(f"Elapsed time: {elapsed:.2f} seconds")
+        print(
+            f"Aggregated Parquet file uploaded to MinIO bucket '{destination_bucket_name}' as '{destination_object_name}'"
+        )
+    else:
+        print("No records found to write to Parquet.")
+    elapsed = time.time() - start_time
+    print(f"Elapsed time: {elapsed:.2f} seconds")
 
 
 if __name__ == "__main__":
