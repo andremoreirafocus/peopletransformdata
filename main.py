@@ -7,6 +7,35 @@ import json
 import time
 
 
+def list_objects_in_minio_folder(
+    bucket_name,
+    prefix,
+    minio_endpoint,
+    access_key,
+    secret_key,
+    secure=True,
+):
+    """
+    Lists files in a MinIO folder (prefix).
+    :param bucket_name: MinIO bucket name
+    :param prefix: Folder path (prefix) in the bucket
+    :param minio_endpoint: MinIO server endpoint
+    :param access_key: MinIO access key
+    :param secret_key: MinIO secret key
+    :param secure: Use HTTPS if True, HTTP if False
+    :return: List of file object names
+    """
+    try:
+        client = Minio(
+            minio_endpoint, access_key=access_key, secret_key=secret_key, secure=secure
+        )
+        objects = client.list_objects(bucket_name, prefix=prefix, recursive=True)
+        return [obj.object_name for obj in objects]
+    except Exception as e:
+        print(f"Error listing files in MinIO folder: {e}")
+        return []
+
+
 def flatten_json_string(json_str, sep="_"):
     """
     Flattens a nested JSON string to a one-level dictionary.
@@ -92,7 +121,7 @@ def json_string_to_parquet_minio(
     try:
         data = json.loads(json_str)
         if isinstance(data, dict):
-            data = [data['results'][0]]
+            data = [data["results"][0]]
         # Flatten each record
         flattened_data = []
         for record in data:
@@ -135,37 +164,43 @@ def main():
     day = 19
     hour = 14
     start_time = time.time()
-    source_filename = "person_0329.json"
-    source_object_name = (
-        f"year={year}/month={month}/day={day}/hour={hour}/{source_filename}"
-    )
-    print(f"Reading JSON from MinIO: {source_object_name}")
-    json_str = read_json_from_minio(
+    objects_to_be_transformed = list_objects_in_minio_folder(
         bucket_name=source_bucket_name,
-        object_name=source_object_name,
+        prefix=f"year={year}/month={month}/day={day}/hour={hour}/",
         minio_endpoint=minio_endpoint,
         access_key=access_key,
         secret_key=secret_key,
         secure=False,
     )
-    destination_filename = "person_0329.parquet"
-    destination_object_name = (
-        f"year={year}/month={month}/day={day}/hour={hour}/{destination_filename}"
-    )
-    print(
-        f"Converting JSON to Parquet and uploading to MinIO: {destination_object_name}"
-    )
-    json_string_to_parquet_minio(
-        json_str=json_str,
-        bucket_name=destination_bucket_name,
-        object_name=destination_object_name,
-        minio_endpoint=minio_endpoint,
-        access_key=access_key,
-        secret_key=secret_key,
-        secure=False,
-    )
-    elapsed = time.time() - start_time
-    print(f"Elapsed time: {elapsed:.2f} seconds")
+    print(f"Files to be transformed: {objects_to_be_transformed}")
+    for object_name in objects_to_be_transformed:
+        source_object_name = object_name
+
+        print(f"Reading JSON from MinIO: {source_object_name}")
+        json_str = read_json_from_minio(
+            bucket_name=source_bucket_name,
+            object_name=source_object_name,
+            minio_endpoint=minio_endpoint,
+            access_key=access_key,
+            secret_key=secret_key,
+            secure=False,
+        )
+        # destination_filename = "person_0329.parquet"
+        destination_object_name = f"year={year}/month={month}/day={day}/hour={hour}/{source_object_name.split('/')[-1].replace('.json', '.parquet')}"
+        print(
+            f"Converting {source_object_name} to Parquet and uploading to MinIO as: {destination_object_name}"
+        )
+        json_string_to_parquet_minio(
+            json_str=json_str,
+            bucket_name=destination_bucket_name,
+            object_name=destination_object_name,
+            minio_endpoint=minio_endpoint,
+            access_key=access_key,
+            secret_key=secret_key,
+            secure=False,
+        )
+        elapsed = time.time() - start_time
+        print(f"Elapsed time: {elapsed:.2f} seconds")
 
 
 if __name__ == "__main__":
