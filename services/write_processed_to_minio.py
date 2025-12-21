@@ -1,7 +1,7 @@
 from services.get_minio_connection_data import get_minio_connection_data
 
 
-def write_parquet_to_minio(buffer, destination_bucket_name, destination_object_name):
+def write_processed_to_minio(buffer, destination_bucket_name, destination_object_name):
     """
     Writes a Parquet buffer to MinIO at the specified bucket and object name.
     """
@@ -16,5 +16,5 @@ def write_parquet_to_minio(buffer, destination_bucket_name, destination_object_n
         content_type="application/octet-stream",
     )
     print(
-        f"Aggregated Parquet file uploaded to MinIO bucket '{destination_bucket_name}' as '{destination_object_name}'"
+        f"Consolidated file uploaded to bucket '{destination_bucket_name}' as '{destination_object_name}'"
     )

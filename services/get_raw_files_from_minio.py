@@ -2,7 +2,7 @@ import json
 from services.get_minio_connection_data import get_minio_connection_data
 
 
-def read_and_flatten_jsons_from_minio(object_names, source_bucket_name):
+def get_raw_files_from_minio(object_names, source_bucket_name):
     """
     Reads and flattens all JSON files from MinIO, returning a list of flattened records.
     """
