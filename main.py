@@ -1,41 +1,11 @@
+from minio import Minio
 import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
-from minio import Minio
 from io import BytesIO
 import json
 import time
-
-
-def write_parquet_to_minio(
-    buffer,
-    destination_bucket_name,
-    destination_object_name,
-    minio_endpoint,
-    access_key,
-    secret_key,
-    secure=False,
-):
-    """
-    Writes a Parquet buffer to MinIO at the specified bucket and object name.
-    """
-    from minio import Minio
-
-    client = Minio(
-        minio_endpoint, access_key=access_key, secret_key=secret_key, secure=secure
-    )
-    if not client.bucket_exists(destination_bucket_name):
-        client.make_bucket(destination_bucket_name)
-    client.put_object(
-        bucket_name=destination_bucket_name,
-        object_name=destination_object_name,
-        data=buffer,
-        length=buffer.getbuffer().nbytes,
-        content_type="application/octet-stream",
-    )
-    print(
-        f"Aggregated Parquet file uploaded to MinIO bucket '{destination_bucket_name}' as '{destination_object_name}'"
-    )
+from services.write_parquet_to_minio import write_parquet_to_minio
 
 
 def read_and_flatten_jsons_from_minio(
