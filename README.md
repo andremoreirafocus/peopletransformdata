@@ -27,6 +27,9 @@ Todas as funções utilizam uma função que fornece os dados de conexão ao Min
 - MinIO em execução e com credenciais criadas (access key e secret key)
 - Bibliotecas: pandas, pyarrow, minio
 
+## Proximos passos
+ - implementar limpeza dos dados
+ - efetuar transformações para que o arquivo processado somente tenha as informações relevantes para as análises
 
 ## Execução
 
