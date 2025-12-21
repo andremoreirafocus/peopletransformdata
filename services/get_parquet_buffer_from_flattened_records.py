@@ -4,7 +4,7 @@ import pyarrow.parquet as pq
 from io import BytesIO
 
 
-def flattened_records_to_parquet_buffer(flattened_records):
+def get_parquet_buffer_from_flattened_records(flattened_records):
     """
     Converts a list of flattened records (dicts) to a Parquet file in a BytesIO buffer.
     Returns the buffer.

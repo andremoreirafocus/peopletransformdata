@@ -2,8 +2,8 @@ import time
 from services.write_parquet_to_minio import write_parquet_to_minio
 from services.list_objects_in_minio_folder import list_objects_in_minio_folder
 from services.read_and_flatten_jsons_from_minio import read_and_flatten_jsons_from_minio
-from services.flattened_records_to_parquet_buffer import (
-    flattened_records_to_parquet_buffer,
+from services.get_parquet_buffer_from_flattened_records import (
+    get_parquet_buffer_from_flattened_records,
 )
 
 
@@ -40,7 +40,7 @@ def main():
     )
 
     if all_flattened_records:
-        out_buffer = flattened_records_to_parquet_buffer(all_flattened_records)
+        out_buffer = get_parquet_buffer_from_flattened_records(all_flattened_records)
         destination_object_name = (
             f"{prefix}consolidated-{year}{month}{day}{hour}.parquet"
         )
