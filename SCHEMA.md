@@ -1,34 +1,36 @@
+# Comandos no Hive para criação da tabela externa
+
 CREATE EXTERNAL TABLE default.people (
-    gender varchar(10), 
-    name_title varchar(100),
-    name_first varchar(100),
-    name_last varchar(100),
-    location_street_number varchar(100),
-    location_street_name varchar(100),
-    location_city varchar(100),
-    location_state varchar(100),
-    location_country varchar(100),
-    location_coordinates_latitude decimal,
-    location_coordinates_longitude decimal,
-    location_timezone_offset varchar(10),
-    location_timezone_description varchar(100),
-    email varchar(100),
-    login_uuid varchar(100),
-    login_username varchar(100),
-    login_password varchar(100),
-    login_salt varchar(100),
-    login_md5 varchar(100),
-    login_sha1 varchar(100),
-    login_sha256 varchar(100),
-    dob_date varchar(100),
-    dob_age int,
-    registered_date varchar(100),
-    registered_age int,
-    phone varchar(100),
-    cell varchar(100),
-    id_name varchar(100),
-    id_value varchar(100),
-    nat varchar(100)
+    gender string, 
+    name_title string,
+    name_first string,
+    name_last string,
+    location_street_number bigint,
+    location_street_name string,
+    location_city string,
+    location_state string,
+    location_country string,
+    location_coordinates_latitude string,
+    location_coordinates_longitude string,
+    location_timezone_offset string,
+    location_timezone_description string,
+    email string,
+    login_uuid string,
+    login_username string,
+    login_password string,
+    login_salt string,
+    login_md5 string,
+    login_sha1 string,
+    login_sha256 string,
+    dob_date string,
+    dob_age bigint,
+    registered_date string,
+    registered_age bigint,
+    phone string,
+    cell string,
+    id_name string,
+    id_value string,
+    nat string
 )
 PARTITIONED BY (
     year string, 
@@ -41,3 +43,12 @@ LOCATION 's3a://processed/people'
 TBLPROPERTIES ('parquet.compress'='SNAPPY');
 
 MSCK REPAIR TABLE default.people;
+
+## Queries no Hive
+select * from default.people 
+	where nat = 'US' and year='2025';
+
+## Queries no Presto
+select * from hive.default.people 
+	where nat = 'US' and year='2025';
+
